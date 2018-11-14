@@ -5,7 +5,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Pose
 #from MoveToJointAngle.srv import *
-from abb_control.srv import *
+from surgical_industrial_arm.srv import *
 import actionlib
 import rospy
 import random
@@ -213,7 +213,7 @@ def main():
     arm.move_to_joint_angle([0]*arm.joint_num, 3, 100)
     print("move to home position!")
     rospy.sleep(3)
-    angles = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    angles = [0, 0, 0, 0, 0, 0, 0, 0, -0.5, 0.5]
     arm.move_to_joint_angle(angles, 3, 100)
     print("move to working home position!")
     rospy.sleep(3)

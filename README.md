@@ -11,14 +11,14 @@ This repository contains packages used to drive an ABB robot (can be replaced by
 
 
 ## Usage
-* Install abb_experimental from <https://github.com/wangyanhit/abb_experimental>
+* Install ```abb_experimental``` from <https://github.com/wangyanhit/abb_experimental>
 
 * Clone this package in (ROS workspace path)/src folder
 ```
-git clone 
+git clone https://github.com/wangyanhit/surgical_industrial_arm.git
 ```
 
-* Copy the Modern_Robotics Python library from <https://github.com/NxRLab/ModernRobotics> to (ROS workspace path)/src/surgical_industrial_arm/scripts
+* Copy ```modern_robotics.py``` from <https://github.com/NxRLab/ModernRobotics> to (ROS workspace path)/src/surgical_industrial_arm/scripts
 
 
 [Modern_Robotics]: http://hades.mech.northwestern.edu/index.php/Modern_Robotics
