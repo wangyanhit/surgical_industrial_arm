@@ -1,0 +1,4 @@
+float32[10] angle
+float32 secs
+---
+bool success
