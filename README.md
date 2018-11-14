@@ -23,7 +23,6 @@ git clone https://github.com/wangyanhit/surgical_industrial_arm.git
 git clone https://github.com/WPI-AIM/dvrk_env.git
 ```
 
-* Copy ```modern_robotics.py``` from <https://github.com/NxRLab/ModernRobotics> to (ROS workspace path)/src/surgical_industrial_arm/scripts
 
 ## Usage
 * launch ABB Gazebo model
