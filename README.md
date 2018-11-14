@@ -10,7 +10,7 @@ This repository contains packages used to drive an ABB robot (can be replaced by
 * [Modern_Robotics]
 
 
-## Usage
+## Install
 * Install ```abb_experimental``` from <https://github.com/wangyanhit/abb_experimental>
 
 * Clone this package in (ROS workspace path)/src folder
@@ -20,6 +20,16 @@ git clone https://github.com/wangyanhit/surgical_industrial_arm.git
 
 * Copy ```modern_robotics.py``` from <https://github.com/NxRLab/ModernRobotics> to (ROS workspace path)/src/surgical_industrial_arm/scripts
 
+## Usage
+* launch ABB Gazebo model
+```
+roslaunch abb_irb120_gazebo irb120_gazebo.launch
+```
+
+* run package node
+```
+rosrun surgical_industrial_arm trajectory_generator.py
+```
 
 [Modern_Robotics]: http://hades.mech.northwestern.edu/index.php/Modern_Robotics
 [wpi-dvrk-ros]: https://github.com/WPI-AIM/dvrk_env
