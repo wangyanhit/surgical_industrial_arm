@@ -18,6 +18,11 @@ This repository contains packages used to drive an ABB robot (can be replaced by
 git clone https://github.com/wangyanhit/surgical_industrial_arm.git
 ```
 
+* Clone dvrk-ros in (ROS workspace path)/src folder (this package includes the model of the insertion tool)
+```
+git clone https://github.com/WPI-AIM/dvrk_env.git
+```
+
 * Copy ```modern_robotics.py``` from <https://github.com/NxRLab/ModernRobotics> to (ROS workspace path)/src/surgical_industrial_arm/scripts
 
 ## Usage
