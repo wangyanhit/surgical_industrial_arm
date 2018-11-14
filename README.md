@@ -8,6 +8,7 @@ This repository contains packages used to drive an ABB robot (can be replaced by
 * [ROS-industrial/abb_experimental]
 * [wpi-dvrk-ros]
 * [Modern_Robotics]
+* [pyquaternion]
 
 
 ## Install
@@ -38,3 +39,4 @@ rosrun surgical_industrial_arm trajectory_generator.py
 [Modern_Robotics]: http://hades.mech.northwestern.edu/index.php/Modern_Robotics
 [wpi-dvrk-ros]: https://github.com/WPI-AIM/dvrk_env
 [ROS-industrial/abb_experimental]: https://github.com/ros-industrial/abb_experimental
+[pyquaternion]: http://kieranwynn.github.io/pyquaternion/
