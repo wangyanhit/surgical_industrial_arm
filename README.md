@@ -21,7 +21,7 @@ sudo apt install ros-kinetic-joint-state-controller
 sudo apt install ros-kinetic-joint-trajectory-controller
 ```
 
-Also, additional required packages can be installed by looking at the error log
+Also, additional required packages can be installed by looking at the error log after running the gazebo launch file.
 ```
 sudo apt install ros-kinetic-<required-package>
 ```
