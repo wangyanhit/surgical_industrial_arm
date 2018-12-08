@@ -80,6 +80,8 @@ class Arm:
         self.last_robot_joint_angle = self.joint_angle[:self.robot_dof]
         self.motor_joint_angle_received = False
         self.servo_joint_angle_received = False
+        if self.is_sim:
+            self.servo_joint_angle_received = True
         self.joint_angle_received = False
         # arm_name should be l_arm or r_arm
         self.node = n
@@ -97,6 +99,7 @@ class Arm:
 
             rospy.loginfo("waiting for servo_trajectory service...")
             rospy.wait_for_service('servo_trajectory')
+            rospy.loginfo('Found servo trajectory service!')
             req = ServoTrajectoryRequest()
 
             point = JointTrajectoryPoint()
@@ -104,12 +107,9 @@ class Arm:
             point.time_from_start = rospy.Duration(3)
 
             req.points.append(point)
-            req.points.append(point)
-            req.points.append(point)
 
             servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
             res = servo_trajectory(req)
-            rospy.loginfo('Found servo joint trajectory service!')
 
         rospy.loginfo('Waiting for joint trajectory action')
         self.jta.wait_for_server()
@@ -219,14 +219,12 @@ class Arm:
                 point_tool.time_from_start = rospy.Duration((i+1)*dt)
                 trajectory_tool_req.points.append(point_tool)
 
-        rospy.loginfo("waiting for servo_trajectory service...")
-        rospy.wait_for_service('servo_trajectory')
+        # servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
+        # res = servo_trajectory(trajectory_tool_req)
 
-        servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
-        res = servo_trajectory(trajectory_tool_req)
-        rospy.loginfo('Found servo joint trajectory service!')
-
+        rospy.loginfo("Sent trajectory to robot...")
         self.jta.send_goal_and_wait(goal.goal)
+        rospy.loginfo("Returned from robot...")
         rospy.sleep(0.5)
 
     def move_to_joint_angle(self, joint_angles, jaw_angle, T, N):
@@ -286,7 +284,8 @@ class Arm:
         self.move_joint_traj(traj, dt)
 
     def joint_state_callback(self, data):
-        for i in range(self.motor_num):
+        num = self.motor_num if self.is_sim else self.robot_dof
+        for i in range(num):
             self.motor_angle[i] = data.position[i]
         self.motor_joint_angle_received = True
 
@@ -362,7 +361,7 @@ class Arm:
         return tar_joint_angle
 
 
-def main(argv):
+def main():
     n = rospy.init_node('joint_position_tester')
     is_simulation = True
     if rospy.has_param('~is_simulation'):
@@ -479,5 +478,4 @@ def main(argv):
 
 
 if __name__ == '__main__':
-
-    main(sys.argv)
+    main()

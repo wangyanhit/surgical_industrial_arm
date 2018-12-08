@@ -30,6 +30,10 @@ git clone https://github.com/WPI-AIM/dvrk_env.git
 ```
 roslaunch abb_irb120_gazebo irb120_gazebo.launch
 ```
+* launch ABB robot
+```
+roslaunch abb_irb120_support robot_interface_download_irb120_3_58.launch robot_ip:=192.168.125.1
+```
 
 * run package node
 ```

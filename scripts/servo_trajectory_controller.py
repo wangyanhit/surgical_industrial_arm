@@ -37,7 +37,7 @@ def main():
     n = rospy.init_node('servo_trajectory_controller')
     servo_trajectory_controller = ServoTrajectoryController(n)
 
-    r = rospy.Rate(1) # 50 Hz
+    r = rospy.Rate(30) # 50 Hz
     while not rospy.is_shutdown():
         print("servo_trajectory_controller is running!")
         servo_joint_state = JointState()

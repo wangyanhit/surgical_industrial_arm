@@ -3,7 +3,7 @@
 
     <group if="$(arg is_simulation)">
         <!-- Run simulation -->
-        <include file="$(find abb_irb120_gazebo)/launch/irb120_gazebo.launch" />
+        <include file="$(find abb_irb120_gazebo)/launch/irb120_surgical_gazebo.launch" />
     </group>
 
     <group unless="$(arg is_simulation)">
