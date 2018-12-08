@@ -20,6 +20,7 @@ class ServoTrajectoryController:
     def __init__(self, n):
         self.node = n
         self.srv_servo_trajectory = rospy.Service('servo_trajectory', ServoTrajectory, self.servo_trajectory_cb)
+        self.servo_joint_state_pub = rospy.Publisher('/servo_joint_states', JointState, queue_size=10)
 
     def servo_trajectory_cb(self, req):
         # success = True
@@ -39,6 +40,10 @@ def main():
     r = rospy.Rate(1) # 50 Hz
     while not rospy.is_shutdown():
         print("servo_trajectory_controller is running!")
+        servo_joint_state = JointState()
+        servo_joint_state.name = ['servo1', 'servo2', 'servo3', 'servo4']
+        servo_joint_state.position = [0, 0, 0, 0]
+        servo_trajectory_controller.servo_joint_state_pub.publish(servo_joint_state)
         r.sleep()
 
 

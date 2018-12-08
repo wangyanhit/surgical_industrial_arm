@@ -78,6 +78,8 @@ class Arm:
         self.intra_joint_angle[2] = 0.2
         self.intra_end_joint_angle = self.intra_joint_angle[:self.intra_end_dof]
         self.last_robot_joint_angle = self.joint_angle[:self.robot_dof]
+        self.motor_joint_angle_received = False
+        self.servo_joint_angle_received = False
         self.joint_angle_received = False
         # arm_name should be l_arm or r_arm
         self.node = n
@@ -85,12 +87,14 @@ class Arm:
         # move_jp, move_jr, move_cp, move_cr
         self.srv_move_to_joint_angle = rospy.Service('move_to_joint_angle', MoveToJointAngle,
                                                      self.move_to_joint_angle_handle)
-        self.srv_move_to_pose = rospy.Service('move_to_pose', MoveToPose,
-                                                     self.move_to_pose_handle)
+        self.srv_move_to_pose = rospy.Service('move_to_pose', MoveToPose, self.move_to_pose_handle)
         self.name = arm_name
         self.jta = actionlib.SimpleActionClient('/joint_trajectory_action', FollowJointTrajectoryAction)
 
         if not self.is_sim:
+            self.servo_joint_state_subscriber = rospy.Subscriber('/servo_joint_states', JointState,
+                                                                 self.servo_joint_state_callback)
+
             rospy.loginfo("waiting for servo_trajectory service...")
             rospy.wait_for_service('servo_trajectory')
             req = ServoTrajectoryRequest()
@@ -116,7 +120,6 @@ class Arm:
         self.T_s_r[0, 3] = p[0]
         self.T_s_r[1, 3] = p[1]
         self.T_s_r[2, 3] = p[2]
-
 
         self.M_r_e = np.zeros((4, 4))
         self.M_r_e[0, 2] = 1
@@ -166,7 +169,7 @@ class Arm:
 
     def get_current_pos(self):
         while self.joint_angle_received == False:
-            rospy.loginfo('Waiting for joint angles...')
+            self.loginfo_wait_joint_angle()
             rospy.sleep(1)
         return self.forward_kinematics(self.joint_angle, frame='jaw', ref='s')
 
@@ -176,10 +179,9 @@ class Arm:
         # for real robot, only send 6 joints
         if not self.is_sim:
             goal.goal.trajectory.joint_names = goal.goal.trajectory.joint_names[:self.robot_dof]
+        trajectory_tool_req = ServoTrajectoryRequest()
 
         for i in range(len(traj)):
-            point = JointTrajectoryPoint()
-
             p = [0]*self.motor_num
             v = [0]*self.motor_num
             last_v = [0] * self.motor_num
@@ -194,18 +196,42 @@ class Arm:
                 p = traj[-1]
             elif i == 0:
                 p = traj[0]
-            point.positions = p
-            point.velocities = v
-            point.accelerations = a
-            point.time_from_start = rospy.Duration((i+1)*dt)
-            goal.goal.trajectory.points.append(point)
+
+            if self.is_sim:
+                point = JointTrajectoryPoint()
+                point.positions = p
+                point.velocities = v
+                point.accelerations = a
+                point.time_from_start = rospy.Duration((i+1)*dt)
+                goal.goal.trajectory.points.append(point)
+            else:
+                point_robot = JointTrajectoryPoint()
+                point_robot.positions = p[:self.robot_dof]
+                point_robot.velocities = v[:self.robot_dof]
+                point_robot.accelerations = a[:self.robot_dof]
+                point_robot.time_from_start = rospy.Duration((i+1)*dt)
+                goal.goal.trajectory.points.append(point_robot)
+
+                point_tool = JointTrajectoryPoint()
+                point_tool.positions = p[self.robot_dof:]
+                point_tool.velocities = v[self.robot_dof:]
+                point_tool.accelerations = a[self.robot_dof:]
+                point_tool.time_from_start = rospy.Duration((i+1)*dt)
+                trajectory_tool_req.points.append(point_tool)
+
+        rospy.loginfo("waiting for servo_trajectory service...")
+        rospy.wait_for_service('servo_trajectory')
+
+        servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
+        res = servo_trajectory(trajectory_tool_req)
+        rospy.loginfo('Found servo joint trajectory service!')
 
         self.jta.send_goal_and_wait(goal.goal)
         rospy.sleep(0.5)
 
     def move_to_joint_angle(self, joint_angles, jaw_angle, T, N):
         while self.joint_angle_received == False:
-            rospy.loginfo('Waiting for joint angles...')
+            self.loginfo_wait_joint_angle()
             rospy.sleep(1)
 
         self.tar_jaw_angle = jaw_angle
@@ -217,9 +243,15 @@ class Arm:
         dt = T/(N-1.0)
         self.move_joint_traj(traj, dt)
 
+    def loginfo_wait_joint_angle(self):
+        if not self.motor_joint_angle_received:
+            rospy.loginfo('Waiting for robot joint angles...')
+        if not self.servo_joint_angle_received:
+            rospy.loginfo('Waiting for servo joint angles...')
+
     def move_to_pose(self, pose, Tf, N, inter_type, frame='jaw'):
         while self.joint_angle_received == False:
-            rospy.loginfo('Waiting for joint angles...')
+            self.loginfo_wait_joint_angle()
             rospy.sleep(1)
         traj = []
         # self.set_last_tar_joint_angles2cur()
@@ -256,6 +288,20 @@ class Arm:
     def joint_state_callback(self, data):
         for i in range(self.motor_num):
             self.motor_angle[i] = data.position[i]
+        self.motor_joint_angle_received = True
+
+        if self.motor_joint_angle_received and self.servo_joint_angle_received:
+            self.motor_angle_process()
+
+    def servo_joint_state_callback(self, data):
+        for i in range(self.tool_dof):
+            self.motor_angle[i+self.robot_dof] = data.position[i]
+        self.servo_joint_angle_received = True
+
+        if self.motor_joint_angle_received and self.servo_joint_angle_received:
+            self.motor_angle_process()
+
+    def motor_angle_process(self):
         self.joint_angle, self.jaw_angle = self.motor_angle2joint_angle(self.motor_angle)
         self.intra_joint_angle[-2:] = self.joint_angle[-2:]
         self.joint_angle_received = True
