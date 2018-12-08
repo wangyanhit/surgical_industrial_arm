@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   control_msgs
   gazebo_msgs
   geometry_msgs
+  trajectory_msgs
   message_generation
   roscpp
   rospy
@@ -77,6 +78,7 @@ add_service_files(
   FILES
   MoveToJointAngle.srv
   MoveToPose.srv
+  ServoTrajectory.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -90,6 +92,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   geometry_msgs
+  trajectory_msgs
 )
 
 ## Generate added messages and services with any dependencies listed here

@@ -33,7 +33,8 @@ roslaunch abb_irb120_gazebo irb120_gazebo.launch
 
 * run package node
 ```
-rosrun surgical_industrial_arm trajectory_generator.py
+~~~rosrun surgical_industrial_arm trajectory_generator.py~~~
+rosrun surgical_industrial_arm kinematics_node.py _is_simulation:=True
 ```
 
 [Modern_Robotics]: http://hades.mech.northwestern.edu/index.php/Modern_Robotics

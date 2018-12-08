@@ -1,0 +1,17 @@
+<launch>
+	<arg name="is_simulation" default="true" doc="Start gazebo in paused mode" />
+
+    <group if="$(arg is_simulation)">
+        <!-- Run simulation -->
+        <include file="$(find abb_irb120_gazebo)/launch/irb120_gazebo.launch" />
+    </group>
+
+    <group unless="$(arg is_simulation)">
+        <!-- Run real robot -->
+        <include file="$(find abb_irb120_support)/launch/robot_interface_download_irb120_3_58.launch" >
+            <arg name="robot_ip" value="192.168.125.1"/>
+        </include>
+    </group>
+
+    <node name="kinematics_node" pkg="surgical_industrial_arm" type="kinematics_node.py" args="$(arg is_simulation)" />
+</launch>

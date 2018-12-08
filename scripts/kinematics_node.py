@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from control_msgs.msg import JointTrajectoryActionGoal, JointTrajectoryAction, FollowJointTrajectoryActionGoal, FollowJointTrajectoryAction
 from sensor_msgs.msg import JointState
-from trajectory_msgs.msg import JointTrajectoryPoint
+from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Pose
 #from MoveToJointAngle.srv import *
@@ -15,15 +15,18 @@ from math import pi
 import copy
 from geometry import *
 from pyquaternion import Quaternion
+import sys
 
 
 
 class Arm:
-    def __init__(self, arm_name, n):
+    def __init__(self, arm_name, n, is_simulation):
         self.tool_len = 0.416
         self.T_s_r = None
         self.M_r_e = None
         self.M_r_jaw = None
+
+        self.is_sim = is_simulation
 
         # frame space -> s
         # frame RCM -> r
@@ -86,6 +89,24 @@ class Arm:
                                                      self.move_to_pose_handle)
         self.name = arm_name
         self.jta = actionlib.SimpleActionClient('/joint_trajectory_action', FollowJointTrajectoryAction)
+
+        if not self.is_sim:
+            rospy.loginfo("waiting for servo_trajectory service...")
+            rospy.wait_for_service('servo_trajectory')
+            req = ServoTrajectoryRequest()
+
+            point = JointTrajectoryPoint()
+            point.positions = [0, 0, 0, 0]
+            point.time_from_start = rospy.Duration(3)
+
+            req.points.append(point)
+            req.points.append(point)
+            req.points.append(point)
+
+            servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
+            res = servo_trajectory(req)
+            rospy.loginfo('Found servo joint trajectory service!')
+
         rospy.loginfo('Waiting for joint trajectory action')
         self.jta.wait_for_server()
         rospy.loginfo('Found joint trajectory action!')
@@ -152,6 +173,10 @@ class Arm:
     def move_joint_traj(self, traj, dt):
         goal = FollowJointTrajectoryActionGoal()
         goal.goal.trajectory.joint_names = ['joint_1', 'joint_2', 'joint_3', 'joint_4', 'joint_5', 'joint_6', 'joint_7', 'joint_8', 'joint_9', 'joint_a']
+        # for real robot, only send 6 joints
+        if not self.is_sim:
+            goal.goal.trajectory.joint_names = goal.goal.trajectory.joint_names[:self.robot_dof]
+
         for i in range(len(traj)):
             point = JointTrajectoryPoint()
 
@@ -291,9 +316,16 @@ class Arm:
         return tar_joint_angle
 
 
-def main():
+def main(argv):
     n = rospy.init_node('joint_position_tester')
-    arm = Arm('r_arm', n)
+    is_simulation = True
+    if rospy.has_param('~is_simulation'):
+        is_simulation = rospy.get_param("~is_simulation", "true")
+        rospy.logwarn("Kinematics Node is in " + ("Simulation Mode" if is_simulation else "Real Robot Mode"))
+    else:
+        rospy.logwarn("No argument input to indicate simulation or real robot.")
+
+    arm = Arm('r_arm', n, is_simulation)
     joint_angle_d = [0.0]*arm.joint_num
     joint_angle_d[4] = 1.5707
     arm.move_to_joint_angle(joint_angle_d, 0.5, 3, 100)
@@ -373,6 +405,11 @@ def main():
     arm.move_to_pose(T, 2, 50, 'c')
     rospy.sleep(0.5)
 
+    # print("send goal")
+    # goal = FollowJointTrajectoryActionGoal()
+    # arm.jta_servo.send_goal_and_wait(goal)
+    # print("goal sent")
+
     # T[0, 3] -= 0.03
     # arm.move_to_pose(T, 2, 50, 'c')
     # rospy.sleep(0.5)
@@ -396,4 +433,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+
+    main(sys.argv)
