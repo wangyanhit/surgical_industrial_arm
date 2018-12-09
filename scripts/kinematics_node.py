@@ -4,7 +4,6 @@ from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Pose
-#from MoveToJointAngle.srv import *
 from surgical_industrial_arm.srv import *
 import actionlib
 import rospy
@@ -83,6 +82,8 @@ class Arm:
         if self.is_sim:
             self.servo_joint_angle_received = True
         self.joint_angle_received = False
+        self.last_desired_pose = None
+
         # arm_name should be l_arm or r_arm
         self.node = n
         self.joint_state_subscriber = rospy.Subscriber('/joint_states', JointState, self.joint_state_callback)
@@ -93,7 +94,7 @@ class Arm:
         self.name = arm_name
         self.jta = actionlib.SimpleActionClient('/joint_trajectory_action', FollowJointTrajectoryAction)
 
-        if not self.is_sim:
+        if True:# not self.is_sim:
             self.servo_joint_state_subscriber = rospy.Subscriber('/servo_joint_states', JointState,
                                                                  self.servo_joint_state_callback)
 
@@ -136,7 +137,7 @@ class Arm:
     def move_to_joint_angle_handle(self, req):
         print "Receive Joint Angle"
         print req.angle
-        self.move_to_joint_angle(req.angle[:9], req.angle[9], req.secs, 100)
+        self.move_to_joint_angle(req.angle[:9], req.angle[9], req.secs, 20)
         res = MoveToJointAngleResponse()
         res.success = True
         return res
@@ -147,7 +148,7 @@ class Arm:
                req.pose.orientation.x,req.pose.orientation.y, req.pose.orientation.z, req.pose.orientation.w)
         #return AddTwoIntsResponse(req.a + req.b)
         T = matrix_from_pose_msg(req.pose)
-        self.move_to_pose(T, req.secs, 100, 'c', req.frame)
+        self.move_to_pose(T, req.jaw_angle, req.secs, 20, 'c', req.frame)
         res = MoveToPoseResponse()
         res.success = True
         return res
@@ -200,32 +201,33 @@ class Arm:
             if self.is_sim:
                 point = JointTrajectoryPoint()
                 point.positions = p
-                point.velocities = v
-                point.accelerations = a
+                # point.velocities = v
+                # point.accelerations = a
                 point.time_from_start = rospy.Duration((i+1)*dt)
                 goal.goal.trajectory.points.append(point)
             else:
                 point_robot = JointTrajectoryPoint()
                 point_robot.positions = p[:self.robot_dof]
-                point_robot.velocities = v[:self.robot_dof]
-                point_robot.accelerations = a[:self.robot_dof]
+                # point_robot.velocities = v[:self.robot_dof]
+                # point_robot.accelerations = a[:self.robot_dof]
                 point_robot.time_from_start = rospy.Duration((i+1)*dt)
                 goal.goal.trajectory.points.append(point_robot)
 
-                point_tool = JointTrajectoryPoint()
-                point_tool.positions = p[self.robot_dof:]
-                point_tool.velocities = v[self.robot_dof:]
-                point_tool.accelerations = a[self.robot_dof:]
-                point_tool.time_from_start = rospy.Duration((i+1)*dt)
-                trajectory_tool_req.points.append(point_tool)
+            point_tool = JointTrajectoryPoint()
+            point_tool.positions = p[self.robot_dof:]
+            # point_tool.velocities = v[self.robot_dof:]
+            # point_tool.accelerations = a[self.robot_dof:]
+            point_tool.time_from_start = rospy.Duration((i+1)*dt)
+            trajectory_tool_req.points.append(point_tool)
 
-        # servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
-        # res = servo_trajectory(trajectory_tool_req)
+        servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
+        res = servo_trajectory(trajectory_tool_req)
+        # print(trajectory_tool_req)
 
         rospy.loginfo("Sent trajectory to robot...")
         self.jta.send_goal_and_wait(goal.goal)
         rospy.loginfo("Returned from robot...")
-        rospy.sleep(0.5)
+        rospy.sleep(0.01)
 
     def move_to_joint_angle(self, joint_angles, jaw_angle, T, N):
         while self.joint_angle_received == False:
@@ -241,25 +243,31 @@ class Arm:
         dt = T/(N-1.0)
         self.move_joint_traj(traj, dt)
 
+        self.last_desired_pose = None
+
     def loginfo_wait_joint_angle(self):
         if not self.motor_joint_angle_received:
             rospy.loginfo('Waiting for robot joint angles...')
         if not self.servo_joint_angle_received:
             rospy.loginfo('Waiting for servo joint angles...')
 
-    def move_to_pose(self, pose, Tf, N, inter_type, frame='jaw'):
+    def move_to_pose(self, pose, jaw_angle, Tf, N, inter_type, frame='jaw'):
         while self.joint_angle_received == False:
             self.loginfo_wait_joint_angle()
             rospy.sleep(1)
+
         traj = []
         # self.set_last_tar_joint_angles2cur()
         # Cartisian or joint interplation
         if inter_type == 'c':
             x_start = self.get_current_pos()
+            if self.last_desired_pose is not None:
+                x_start = self.last_desired_pose
             print('xstart', x_start)
             x_end = pose
             print('xend', x_end)
             x_traj = mr.CartesianTrajectory(x_start, x_end, Tf, N, 5)
+            jaw_traj = mr.JointTrajectory([self.jaw_angle], [jaw_angle], Tf, N, 5)
             #print(x_traj)
 
             for i in range(len(x_traj)):
@@ -270,18 +278,20 @@ class Arm:
                 #print(x_traj[i])
                 #print(theta0)
                 theta_d = self.inverse_kinematics_rcm(x_traj[i])
-                motor_angle_d = self.joint_angle2motor_angle(theta_d, self.tar_jaw_angle)
+                motor_angle_d = self.joint_angle2motor_angle(theta_d, jaw_traj[i])
                 #print(theta)
                 traj.append(motor_angle_d)
         elif inter_type == 'j':
             theta_d = self.inverse_kinematics_rcm(pose)
             print("theta_d: {}".format(theta_d))
-            motor_angle_d = self.joint_angle2motor_angle(theta_d, self.tar_jaw_angle)
+            motor_angle_d = self.joint_angle2motor_angle(theta_d, jaw_angle)
             print("motor_d: {}".format(motor_angle_d))
             print("tar motor angle: {}".format(motor_angle_d))
             traj = mr.JointTrajectory(self.motor_angle, motor_angle_d, Tf, N, 5)
         dt = Tf/(N-1.0)
         self.move_joint_traj(traj, dt)
+
+        self.last_desired_pose = pose
 
     def joint_state_callback(self, data):
         num = self.motor_num if self.is_sim else self.robot_dof
@@ -319,13 +329,13 @@ class Arm:
 
     def inverse_kinematics(self, pose, thetalist0, frame='end', ref='s'):
         if frame == 'jaw' and ref == 's':
-            return mr.IKinSpace(self.S_s_jaw, self.M_s_jaw, pose, thetalist0, 0.001, 0.0001)
+            return mr.IKinSpace(self.S_s_jaw, self.M_s_jaw, pose, thetalist0, 0.0001, 0.0001)
         elif frame == 'end' and ref == 'r':
-            return mr.IKinSpace(self.S_r_e, self.M_r_e, pose, thetalist0, 0.001, 0.0001)
+            return mr.IKinSpace(self.S_r_e, self.M_r_e, pose, thetalist0, 0.0001, 0.0001)
         elif frame == 'jaw' and ref == 'r':
-            return mr.IKinSpace(self.S_r_jaw, self.M_r_jaw, pose, thetalist0, 0.001, 0.0001)
+            return mr.IKinSpace(self.S_r_jaw, self.M_r_jaw, pose, thetalist0, 0.0001, 0.0001)
         elif frame == 'end' and ref == 's':
-            return mr.IKinSpace(self.S_s_e, self.M_s_e, pose, thetalist0, 0.001, 0.0001)
+            return mr.IKinSpace(self.S_s_e, self.M_s_e, pose, thetalist0, 0.0001, 0.0001)
         else:
             raise Exception('Frame or reference is not right.')
 
@@ -372,8 +382,8 @@ def main():
 
     arm = Arm('r_arm', n, is_simulation)
     joint_angle_d = [0.0]*arm.joint_num
-    joint_angle_d[4] = 1.5707
-    arm.move_to_joint_angle(joint_angle_d, 0.5, 3, 100)
+    joint_angle_d[4] = np.pi/2
+    arm.move_to_joint_angle(joint_angle_d, 0, 3, 100)
     print("move to home position!")
     rospy.sleep(2)
     # angles = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -447,7 +457,7 @@ def main():
     # arm.move_to_joint_angle(tar_joint_angle, 3, 100)
     T[2, 3] += 0.05
     # T[1, 3] -= 0.05
-    arm.move_to_pose(T, 2, 50, 'c')
+    arm.move_to_pose(T, 0.5, 2, 50, 'c')
     rospy.sleep(0.5)
 
     # print("send goal")

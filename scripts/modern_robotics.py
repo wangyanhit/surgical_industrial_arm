@@ -801,7 +801,7 @@ def IKinSpace(Slist, M, T, thetalist0, eomg, ev):
     """
     thetalist = np.array(thetalist0).copy()
     i = 0
-    maxiterations = 20
+    maxiterations = 30
     Tsb = FKinSpace(M,Slist, thetalist)
     Vs = np.dot(Adjoint(Tsb), \
                 se3ToVec(MatrixLog6(np.dot(TransInv(Tsb), T))))

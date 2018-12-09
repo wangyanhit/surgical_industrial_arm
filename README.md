@@ -35,6 +35,11 @@ roslaunch abb_irb120_gazebo irb120_gazebo.launch
 roslaunch abb_irb120_support robot_interface_download_irb120_3_58.launch robot_ip:=192.168.125.1
 ```
 
+* connect Arduino
+```
+rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0 _baud:=115200
+```
+
 * run package node
 ```
 ~~~rosrun surgical_industrial_arm trajectory_generator.py~~~

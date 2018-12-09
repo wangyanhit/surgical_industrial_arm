@@ -13,5 +13,9 @@
         </include>
     </group>
 
-    <node name="kinematics_node" pkg="surgical_industrial_arm" type="kinematics_node.py" args="$(arg is_simulation)" />
+    <!--node name="kinematics_node" pkg="surgical_industrial_arm" type="kinematics_node.py" args="$(arg is_simulation)" /-->
+    <node name="serial_node" pkg="rosserial_python" type="serial_node.py" args="$(arg is_simulation)" >
+        <param name="port" value="/dev/ttyACM0"/>
+        <param name="baud" value="115200"/>
+    </node>>
 </launch>
