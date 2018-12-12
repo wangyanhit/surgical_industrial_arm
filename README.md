@@ -14,6 +14,19 @@ This repository contains packages used to drive an ABB robot (can be replaced by
 ## Install
 * Install ```abb_experimental``` from <https://github.com/wangyanhit/abb_experimental>
 
+* Install controller packages for the gazebo model
+```
+sudo apt install ros-kinetic-gazebo-ros*
+sudo apt install ros-kinetic-joint-state-controller
+sudo apt install ros-kinetic-joint-trajectory-controller
+```
+
+Also, additional required packages can be installed by looking at the error log after running the gazebo launch file.
+```
+sudo apt install ros-kinetic-<required-package>
+```
+
+
 * Clone this package in (ROS workspace path)/src folder
 ```
 git clone https://github.com/wangyanhit/surgical_industrial_arm.git
