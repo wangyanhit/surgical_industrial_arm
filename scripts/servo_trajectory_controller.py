@@ -70,8 +70,8 @@ class ServoTrajectoryController:
         servo_angle_remap = [0, 0, 0, 0]
         servo_angle_remap[2] = servo_angle[0]
         servo_angle_remap[1] = servo_angle[1]
-        servo_angle_remap[0] = servo_angle[2]
-        servo_angle_remap[3] = servo_angle[3]
+        servo_angle_remap[3] = servo_angle[2]
+        servo_angle_remap[0] = servo_angle[3]
 
         cmd = Int16MultiArray()
         cmd.data = (np.array(servo_angle_remap) + np.deg2rad(150))/np.deg2rad(300)*1023

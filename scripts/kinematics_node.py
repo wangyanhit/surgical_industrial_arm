@@ -83,6 +83,7 @@ class Arm:
             self.servo_joint_angle_received = True
         self.joint_angle_received = False
         self.last_desired_pose = None
+        self.is_servo_enable = True
 
         # arm_name should be l_arm or r_arm
         self.node = n
@@ -94,7 +95,7 @@ class Arm:
         self.name = arm_name
         self.jta = actionlib.SimpleActionClient('/joint_trajectory_action', FollowJointTrajectoryAction)
 
-        if True:# not self.is_sim:
+        if True and self.is_servo_enable:# not self.is_sim:
             self.servo_joint_state_subscriber = rospy.Subscriber('/servo_joint_states', JointState,
                                                                  self.servo_joint_state_callback)
 
@@ -137,7 +138,7 @@ class Arm:
     def move_to_joint_angle_handle(self, req):
         print "Receive Joint Angle"
         print req.angle
-        self.move_to_joint_angle(req.angle[:9], req.angle[9], req.secs, 20)
+        self.move_to_joint_angle(req.angle[:9], req.angle[9], req.secs, 10)
         res = MoveToJointAngleResponse()
         res.success = True
         return res
@@ -148,7 +149,7 @@ class Arm:
                req.pose.orientation.x,req.pose.orientation.y, req.pose.orientation.z, req.pose.orientation.w)
         #return AddTwoIntsResponse(req.a + req.b)
         T = matrix_from_pose_msg(req.pose)
-        self.move_to_pose(T, req.jaw_angle, req.secs, 20, 'c', req.frame)
+        self.move_to_pose(T, req.jaw_angle, req.secs, 10, 'c', req.frame)
         res = MoveToPoseResponse()
         res.success = True
         return res
@@ -219,10 +220,10 @@ class Arm:
             # point_tool.accelerations = a[self.robot_dof:]
             point_tool.time_from_start = rospy.Duration((i+1)*dt)
             trajectory_tool_req.points.append(point_tool)
-
-        servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
-        res = servo_trajectory(trajectory_tool_req)
-        # print(trajectory_tool_req)
+        if self.is_servo_enable:
+            servo_trajectory = rospy.ServiceProxy('servo_trajectory', ServoTrajectory)
+            res = servo_trajectory(trajectory_tool_req)
+            # print(trajectory_tool_req)
 
         rospy.loginfo("Sent trajectory to robot...")
         self.jta.send_goal_and_wait(goal.goal)
@@ -455,10 +456,10 @@ def main():
     # # print("target joint angles: {}".format(tar_joint_angle))
     # # angles = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     # arm.move_to_joint_angle(tar_joint_angle, 3, 100)
-    T[2, 3] += 0.05
-    # T[1, 3] -= 0.05
-    arm.move_to_pose(T, 0.5, 2, 50, 'c')
-    rospy.sleep(0.5)
+    # T[2, 3] += 0.05
+    # # T[1, 3] -= 0.05
+    # arm.move_to_pose(T, 0.5, 2, 50, 'c')
+    # rospy.sleep(0.5)
 
     # print("send goal")
     # goal = FollowJointTrajectoryActionGoal()
