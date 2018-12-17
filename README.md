@@ -4,6 +4,8 @@
 
 This repository contains packages used to drive an ABB robot (can be replaced by other robots) and an insertion tool for da Vinci Surgical System controlled by four servos. The software structure is shown in the following figure.
 
+[Video]
+
 ## Dependency 
 * [ROS-industrial/abb_experimental]
 * [wpi-dvrk-ros]
@@ -63,3 +65,4 @@ rosrun surgical_industrial_arm kinematics_node.py _is_simulation:=True
 [wpi-dvrk-ros]: https://github.com/WPI-AIM/dvrk_env
 [ROS-industrial/abb_experimental]: https://github.com/ros-industrial/abb_experimental
 [pyquaternion]: http://kieranwynn.github.io/pyquaternion/
+[Video]: https://www.youtube.com/watch?v=EwtT7nBfjyI
