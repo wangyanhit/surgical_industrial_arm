@@ -4,9 +4,9 @@
 
 This repository contains packages used to drive an ABB robot (can be replaced by other robots) and an insertion tool for da Vinci Surgical System controlled by four servos. The software structure is shown in the following figure.
 
-
-
 This is a course project of RBE580/ME5205 Biomedical Robotics taught by Prof. Gregory Fischer from Worcester Polytechnic Institute (WPI).
+
+![Screenshot](doc/system_structure.png)
 
 * [Video]
 
